@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Searchbar from './Searchbar';
@@ -8,15 +8,61 @@ import Button from './Button';
 import { Loader } from './Loader/Loader';
 import { API_KEY } from './services/api.js';
 
-export class App extends Component {
-  state = {
-    name: '',
-    images: [],
-    page: 1,
-    status: 'idle',
-    modal: false,
-    currentImage: '',
-  };
+export  const App = () => {
+  
+  const [name, setName] = useState('');
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState(status.IDLE);
+  const [modal, setModal] = useState(false);
+  const [currentImage, setCurrentImage] = useState('');
+
+
+  // state = {
+  //   name: '',
+  //   images: [],
+  //   page: 1,
+  //   status: 'idle',
+  //   modal: false,
+  //   currentImage: '',
+  // };
+
+
+
+
+  useEffect(() => {
+    setStatus(status.PENDING)
+
+
+    fetch(
+      `https://pixabay.com/api/?q=${name}&key=${API_KEY}&image_type=photo&orientation=horizontal&page=${page}&per_page=12`
+    )
+      .then(res => res.json())
+      .then(({ hits }) => {
+        if (hits.length === 0) {
+          setStatus(status.REJECTED );
+        } else {
+          setImages(({ images }) => ({
+            images: [
+              ...images,
+              ...hits.map(({ id, tags, webformatURL, largeImageURL }) => {
+                return { id, tags, webformatURL, largeImageURL };
+              }),
+            ],
+          }));
+        }
+      })
+      .finally(() => {
+        setStatus(status.IDLE);
+      });
+
+
+  },[]);
+
+
+
+
+
 
   componentDidUpdate(prevProps, prevState) {
     const { name, page, images } = this.state;
@@ -54,45 +100,41 @@ export class App extends Component {
     }
   }
 
-  handleNameSubmit = name => {
-    this.setState({ name, page: 1, images: [] });
+  const handleNameSubmit = name => {
+    setName(name, page: 1, images: [] );
   };
 
-  handleLoadMore = () => {
-    this.setState(({ page }) => ({
+  const handleLoadMore = () => {
+    setPage(( page ) => ({
       page: page + 1,
     }));
   };
 
-  handleClickImage = image => {
-    this.setState({ currentImage: image, modal: true });
+  const handleClickImage = image => {
+    setCurrentImage({ currentImage: image, modal: true });
   };
 
-  handleCloseModal = () => {
-    this.setState({ modal: false });
+  const handleCloseModal = () => {
+    setModal({ modal: false });
   };
-
-  render() {
-    const { images, status, modal, currentImage } = this.state;
 
     return (
       <div>
-        <Searchbar onSubmit={this.handleNameSubmit} />
+        <Searchbar onSubmit={handleNameSubmit} />
         {images.length > 0 && (
           <>
             <ImageGallery
               images={images}
-              onClickImage={this.handleClickImage}
+              onClickImage={handleClickImage}
             />
             {status === 'pending' && <Loader />}
-            <Button onLoadMore={this.handleLoadMore} />
+            <Button onLoadMore={handleLoadMore} />
           </>
         )}
         {modal === true && (
-          <Modal currentImage={currentImage} onClose={this.handleCloseModal} />
+          <Modal currentImage={currentImage} onClose={handleCloseModal} />
         )}
         <ToastContainer autoClose={3000} />
       </div>
     );
-  }
-}
+  };
